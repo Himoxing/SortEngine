@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SortEngine</title>
+    <hta:application id="minecraftApp" applicationname="MinecraftApp" border="thin" showintaskbar="yes" sysmenu="no" contextmenu="no" scroll="no" scrollflat="yes" singleinstance="yes" minimizebutton="no" maximizebutton="no" windowstate="normal" innerborder="no" />
+    <style>
+        body {
+            overflow: hidden;
+        }
+        #container {
+            width: 400px;
+            height: 300px;
+            overflow-y: scroll;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f5f5f5;
+        }
+    </style>
+    <script language="VBScript">
+        Dim folderNamesArray
+        Dim folderPaths
+        Dim folderDates
+        
+        Sub OpenFolderDialog
+            Set objShell = CreateObject("Shell.Application")
+            Set selectedFolder = objShell.BrowseForFolder(0, "Wybierz folder", 0, "Domyślny folder")
+            If Not selectedFolder Is Nothing Then
+                Set fs = CreateObject("Scripting.FileSystemObject")
+                Set subfolders = selectedFolder.Items
+                folderNames = ""
+                ReDim folderNamesArray(subfolders.Count - 1)
+                ReDim folderPaths(subfolders.Count - 1)
+                ReDim folderDates(subfolders.Count - 1)
+                index = 0
+                For Each subfolder In subfolders
+                    If fs.FolderExists(subfolder.Path) Then
+                        folderNamesArray(index) = subfolder.Name
+                        folderPaths(index) = subfolder.Path
+                        folderDates(index) = fs.GetFolder(subfolder.Path).DateLastModified
+                        folderNames = folderNames & "<a href='#' onclick='OpenFolder(" & index & ")'>" & subfolder.Name & "</a><br>"
+                        index = index + 1
+                    End If
+                Next
+                document.getElementById("folderList").innerHTML = folderNames
+            End If
+        End Sub
+        
+        Sub OpenFolder(index)
+            Set objShell = CreateObject("WScript.Shell")
+            objShell.Run "explorer.exe """ & folderPaths(index) & """", 1, False
+        End Sub
+        
+        Sub SortFoldersAlphabetically
+            If IsArray(folderNamesArray) Then
+                Set arr = CreateObject("System.Collections.ArrayList")
+                For Each folderName In folderNamesArray
+                    arr.Add folderName
+                Next
+                
+                arr.Sort
+                sortedNames = ""
+                For Each folderName In arr
+                    index = -1
+                    For i = LBound(folderNamesArray) To UBound(folderNamesArray)
+                        If folderNamesArray(i) = folderName Then
+                            index = i
+                            Exit For
+                        End If
+                    Next
+                    If index >= 0 Then
+                        sortedNames = sortedNames & "<a href='#' onclick='OpenFolder(" & index & ")'>" & folderName & "</a><br>"
+                    End If
+                Next
+                
+                document.getElementById("folderList").innerHTML = sortedNames
+            End If
+        End Sub
+        
+        Sub SortFoldersByDate
+            If IsArray(folderNamesArray) Then
+                For i = LBound(folderDates) To UBound(folderDates) - 1
+                    For j = i + 1 To UBound(folderDates)
+                        If folderDates(j) < folderDates(i) Then
+                            tempDate = folderDates(i)
+                            tempName = folderNamesArray(i)
+                            tempPath = folderPaths(i)
+                            
+                            folderDates(i) = folderDates(j)
+                            folderNamesArray(i) = folderNamesArray(j)
+                            folderPaths(i) = folderPaths(j)
+                            
+                            folderDates(j) = tempDate
+                            folderNamesArray(j) = tempName
+                            folderPaths(j) = tempPath
+                        End If
+                    Next
+                Next
+
+                sortedNames = ""
+                For i = LBound(folderNamesArray) To UBound(folderNamesArray)
+                    sortedNames = sortedNames & "<a href='#' onclick='OpenFolder(" & i & ")'>" & folderNamesArray(i) & "</a> (" & folderDates(i) & ")<br>"
+                Next
+                
+                document.getElementById("folderList").innerHTML = sortedNames
+            End If
+        End Sub
+    </script>
+</head>
+<body>
+
+<div id="container">
+    <h2>SortEngine</h2>
+    <button onclick="OpenFolderDialog()">Otwórz folder/Open Folder</button>
+    <button onclick="SortFoldersAlphabetically()">Sortuj alfabetycznie/Sort Alphabet</button>
+    <button onclick="SortFoldersByDate()">Sortuj według daty/Sort by Data</button>
+    <div id="folderList"></div>
+</div>
+
+</body>
+</html>
